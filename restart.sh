@@ -1,5 +1,7 @@
 #!/bin/sh
-# 清理 + 重启远端 blinkface GPU 服务。: sh restart.sh
+# 可选助手：SSH 到远端 Windows GPU 主机，清理并重启 blinkface。
+# 依赖远程 PowerShell + nvidia-smi；Linux 远端请自行改命令。
+# 用法: sh restart.sh
 # 配置来自环境变量或同目录 .env（见 .env.example）。不开机自启。
 set -e
 cd "$(dirname "$0")"

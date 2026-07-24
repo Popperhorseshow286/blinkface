@@ -2,91 +2,113 @@
 
 **Changing your face in the blink of an eye with AI.**
 
-手势取景框 + 实时 AI 风格化。一台 CUDA GPU 跑 [FLUX.2 [klein] 4B](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B) 生图 API，Mac / 浏览器当遥控器：文生图、图生图，双手围框即时预览。
+[中文文档](./README-zh.md)
 
-- **GPU 端**：`server.py`（FastAPI + diffusers）
-- **CLI**：`gen.py`（纯标准库）
-- **Web**：`web/` + `web-serve.py`（静态页 + 同源反代）
-- **网络**：Tailscale / 局域网 / SSH 隧道均可；**仓库不含私人地址**
+Gesture viewfinder + real-time AI restyle. One CUDA GPU runs a [FLUX.2 [klein] 4B](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B) image API; Mac / browser act as the remote: text-to-image, image-to-image, and a two-hand frame for live styled preview.
+
+## Preview
+
+Frame your face with both hands → the region restyles live (anime, Ghibli, cyberpunk, …). Close the frame to jump to the next style.
+
+▶️ **[Demo video (X / Twitter)](https://x.com/Lumosous/status/2080430080371941882)**
+
+## Credits
+
+- **Idea**: [this LinkedIn post](https://www.linkedin.com/feed/update/urn:li:activity:7476225577184669696/) — gesture framing + local model restyle inspired this project.
+- **Model**: [Black Forest Labs FLUX.2 [klein] 4B](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B)
+- **Hands**: [MediaPipe Hand Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker)
+
+## Components
+
+- **GPU**: `server.py` (FastAPI + diffusers)
+- **CLI**: `gen.py` (stdlib only)
+- **Web**: `web/` + `web-serve.py` (static page + same-origin proxy)
+- **Network**: Tailscale / LAN / SSH tunnel — **no private addresses in the repo**
 
 > **License**  
-> 代码：[MIT](./LICENSE)  
-> 模型：Black Forest Labs 权重，另有许可 —— 使用前阅读  
-> [模型卡](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B) 与 BFL 条款（常见非商用等限制，以原文为准）。
+> Code: [MIT](./LICENSE)  
+> Default model [FLUX.2 [klein] 4B](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B): **Apache-2.0** (commercial use OK)  
+> If you set `BLINKFACE_MODEL` to another weight, that **model card’s** license applies (some FLUX variants are Non-Commercial).  
+> Follow Black Forest Labs / the model card [Acceptable Use](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B) policy.
+
+> **Usage boundary**  
+> Only process **your own** image or people who **explicitly consented**. Do not use for unauthorized face-swap, impersonation, or anything illegal. Style names (Ghibli, Pixar, …) are descriptive prompt words only — no affiliation with rightsholders.
 
 ---
 
-## 要求
+## Requirements
 
-| 端 | 要求 |
-|----|------|
-| GPU 服务 | Python **≥ 3.10**，CUDA GPU，建议 **≥ 16GB 显存** |
-| 客户端 | Python ≥ 3.10，无第三方依赖 |
-| 前端 | 现代浏览器；摄像头需 **HTTPS** 或 localhost |
+| Role | Needs |
+|------|--------|
+| GPU server | Python **≥ 3.10**, CUDA GPU, **≥ 16GB VRAM** recommended |
+| Client | Python ≥ 3.10, no third-party deps |
+| Frontend | Modern browser; camera needs **HTTPS** or localhost |
 
 ---
 
-## 配置
+## Config
 
 ```bash
 cp .env.example .env
 ```
 
-| 变量 | 谁用 | 含义 |
-|------|------|------|
-| `BLINKFACE_HOST` | `gen.py` / `web-serve.py` / `restart.sh` | API 根 URL |
-| `BLINKFACE_BIND` / `BLINKFACE_PORT` | `server.py` | 默认 `127.0.0.1:8000` |
-| `BLINKFACE_TOKEN` | 三端 | 可选共享密钥 |
-| `BLINKFACE_SSH_*` / `BLINKFACE_REMOTE_*` | `restart.sh` | 远端重启（可选） |
-| `HF_TOKEN` / `HF_HOME` | `dl.py` / 首次拉模 | Hugging Face |
+| Variable | Used by | Meaning |
+|----------|---------|---------|
+| `BLINKFACE_HOST` | `gen.py` / `web-serve.py` / `restart.sh` | API base URL |
+| `BLINKFACE_BIND` / `BLINKFACE_PORT` | `server.py` | default `127.0.0.1:8000` |
+| `BLINKFACE_TOKEN` | all three | optional shared secret |
+| `BLINKFACE_SSH_*` / `BLINKFACE_REMOTE_*` | `restart.sh` | remote restart (optional) |
+| `HF_TOKEN` / `HF_HOME` | `dl.py` / first model pull | Hugging Face |
 
-已有环境变量优先于 `.env`。`.env` 已被 gitignore。
+Existing environment variables win over `.env`. `.env` is gitignored.
 
 ---
 
-## 一、GPU 机器
+## 1. GPU server
 
 ```bash
 python -m venv .venv
 # Windows: .venv\Scripts\activate
 source .venv/bin/activate
 
-pip install torch --index-url https://download.pytorch.org/whl/cu124   # 按本机 CUDA 改
+pip install torch --index-url https://download.pytorch.org/whl/cu124   # match your CUDA
 pip install -r requirements-server.txt
-# 若 pip 版 diffusers 尚无 FLUX.2-klein：
+# if your pip diffusers build lacks FLUX.2-klein:
 pip install git+https://github.com/huggingface/diffusers.git
 
-# 可选预下载
+# optional pre-download
 python dl.py
 
 python server.py
-# ready. 之后：
+# ready. then:
 curl http://127.0.0.1:8000/
 ```
 
-Windows 防火墙只需放行你要暴露的端口（示例 8000），不必关防火墙。
+On Windows, only open the port you need (e.g. 8000) in the firewall — no need to disable it.
 
-跨设备访问时：
+For cross-device access:
 
 ```bash
 # .env
 BLINKFACE_BIND=0.0.0.0
-BLINKFACE_TOKEN=请换成足够长的随机串
+BLINKFACE_TOKEN=replace-with-a-long-random-string
 ```
 
-### 安全
+### Security
 
-- 默认只听本机；无 token 时不要把端口暴露到不可信网络。
-- 详见 [SECURITY.md](./SECURITY.md)。
+- **Do not** DNAT / expose the GPU port to the public internet.
+- Default bind is localhost; without `BLINKFACE_TOKEN`, do not set `BLINKFACE_BIND=0.0.0.0` on untrusted networks.
+- `web-serve.py` injects the token upstream: `BLINKFACE_WEB_BIND=0.0.0.0` exposes an unauthenticated generate entry to anyone who can reach that port.
+- Details: [SECURITY.md](./SECURITY.md).
 
 ---
 
-## 二、CLI（Mac / 其它）
+## 2. CLI
 
 ```bash
 cp .env.example .env
-# BLINKFACE_HOST=http://<gpu可达地址>:8000
-# BLINKFACE_TOKEN=…   # 若服务端开了
+# BLINKFACE_HOST=http://<gpu-reachable-host>:8000
+# BLINKFACE_TOKEN=…   # if the server requires it
 
 curl "$BLINKFACE_HOST/" 
 
@@ -94,47 +116,50 @@ python3 gen.py "a cat holding a sign that says hello world" cat.jpg
 python3 gen.py "Transform this person into a Japanese anime character..." out.jpg --img face.jpg
 ```
 
-更多风格指令见 [prompts.md](./prompts.md)。
+More style prompts: [prompts.md](./prompts.md).
 
 ---
 
-## 三、Web 手势取景框
+## 3. Web viewfinder
 
 ```bash
-python3 web-serve.py        # 默认 127.0.0.1:8080，反代到 BLINKFACE_HOST
+python3 web-serve.py        # default 127.0.0.1:8080, proxies to BLINKFACE_HOST
 open http://127.0.0.1:8080
 ```
 
-- 浏览器只打同源 `/generate`、`/health`；token 由代理注入。
-- 远程摄像头：用 HTTPS 反代（如 `tailscale serve --bg 8080`）。
-- 局域网要让别人打开页面时：`BLINKFACE_WEB_BIND=0.0.0.0 python3 web-serve.py`
+- Browser only hits same-origin `/generate` and `/health`; the proxy injects the token (browser never holds the secret).
+- Remote camera: put an HTTPS reverse proxy in front (e.g. `tailscale serve --bg 8080`).
+- To let others on the LAN open the page: `BLINKFACE_WEB_BIND=0.0.0.0 python3 web-serve.py` (see Security — this exposes the free generate entry).
+- Frontend loads scripts/models from jsDelivr / Google Fonts / MediaPipe CDN by default; fully offline needs your own mirrors.
 
 ---
 
-## 速度参考（4090 + klein 4B）
+## Speed (4090 + klein 4B)
 
-- 1024px / 4 step ≈ 1s 级  
-- Web 默认 `672×384`、2 step，偏向实时预览  
+- 1024px / 4 steps ≈ ~1s  
+- Web defaults to `672×384`, 2 steps — tuned for live preview  
 
 ---
 
-## 目录
+## Layout
 
-| 路径 | 作用 |
+| Path | Role |
 |------|------|
-| `server.py` | GPU 生图 API |
+| `server.py` | GPU image API |
 | `gen.py` | CLI |
-| `web-serve.py` + `web/` | 前端 + 同源反代 |
-| `dl.py` | 稳健拉模型 |
-| `restart.sh` | SSH 重启远端服务 |
-| `prompts.md` | 风格提示词 |
-| `envfile.py` | 读 `.env` |
-| `.env.example` | 配置模板 |
-| `SECURITY.md` | 安全说明 |
+| `web-serve.py` + `web/` | frontend + same-origin proxy |
+| `dl.py` | resilient model download |
+| `restart.sh` | optional: SSH-restart service on a **remote Windows GPU host** (PowerShell) |
+| `prompts.md` | style prompts |
+| `envfile.py` | `.env` loader |
+| `.env.example` | config template |
+| `SECURITY.md` | security notes |
+| `README-zh.md` | Chinese docs |
 
 ---
 
 ## License
 
 - Code: [MIT](./LICENSE)
-- Model weights: Black Forest Labs / Hugging Face model license（与本仓库分离）
+- Default model weights ([FLUX.2 [klein] 4B](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B)): **Apache-2.0**
+- Other models via `BLINKFACE_MODEL`: see that model’s card (separate from this repo’s code license)

@@ -9,8 +9,10 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import io
 import os
+import secrets
 import threading
 import time
 
@@ -18,7 +20,7 @@ import torch
 from diffusers import Flux2KleinPipeline
 from fastapi import FastAPI, Header, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, Field
 
 from envfile import load_env
@@ -32,6 +34,9 @@ TOKEN = os.environ.get("BLINKFACE_TOKEN", "").strip()
 MAX_SIDE = int(os.environ.get("BLINKFACE_MAX_SIDE", "1280"))
 MAX_STEPS = int(os.environ.get("BLINKFACE_MAX_STEPS", "28"))
 MAX_EMB = int(os.environ.get("BLINKFACE_MAX_EMB", "64"))
+# 输入图像上限（base64 字符数 / 解码后字节），防直连打满内存
+MAX_IMAGE_BYTES = int(os.environ.get("BLINKFACE_MAX_IMAGE_BYTES", str(20 * 1024 * 1024)))
+MAX_IMAGE_B64 = int(os.environ.get("BLINKFACE_MAX_IMAGE_B64", str(28 * 1024 * 1024)))
 
 # 底层开关：cuDNN 自动选最快卷积核(VAE)、允许 TF32、启用 flash attention
 torch.backends.cudnn.benchmark = True
@@ -48,14 +53,24 @@ SEQ = 128       # 提示词很短，默认 512 token 太浪费 → 砍到 128 �
 EMB: dict = {}  # prompt -> 缓存编码，跳过每次重跑文本编码器（固定开销的大头）
 
 
+def _token_ok(value: str | None) -> bool:
+    if not value:
+        return False
+    # compare_digest 要求同类型；长度不同直接拒，避免抛错
+    try:
+        return secrets.compare_digest(value, TOKEN)
+    except (TypeError, ValueError):
+        return False
+
+
 def _authorized(authorization: str | None, x_token: str | None) -> bool:
     if not TOKEN:
         return True
-    if x_token and x_token == TOKEN:
+    if _token_ok(x_token):
         return True
     if authorization:
         scheme, _, value = authorization.partition(" ")
-        if scheme.lower() == "bearer" and value.strip() == TOKEN:
+        if scheme.lower() == "bearer" and _token_ok(value.strip()):
             return True
     return False
 
@@ -90,12 +105,26 @@ def _fit(img, cap=1024):
     return max(16, round(w * s / 16) * 16), max(16, round(h * s / 16) * 16)
 
 
+def _load_image(img_b64: str) -> Image.Image:
+    if len(img_b64) > MAX_IMAGE_B64:
+        raise HTTPException(status_code=413, detail="image too large")
+    try:
+        raw = base64.b64decode(img_b64, validate=True)
+    except (binascii.Error, ValueError):
+        raise HTTPException(status_code=400, detail="invalid image encoding")
+    if len(raw) > MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail="image too large")
+    try:
+        return Image.open(io.BytesIO(raw)).convert("RGB")
+    except (UnidentifiedImageError, OSError):
+        raise HTTPException(status_code=400, detail="invalid image")
+
+
 def render(prompt, img_b64, width, height, steps, seed):
     img = None
     steps = _clamp_steps(steps)
     if img_b64:                                    # 给了图 = 图生图/风格转换
-        raw = base64.b64decode(img_b64, validate=False)
-        img = Image.open(io.BytesIO(raw)).convert("RGB")
+        img = _load_image(img_b64)
         if not width or not height:                # 没指定尺寸就跟输入图比例走
             width, height = _fit(img, cap=min(1024, MAX_SIDE))
     width = _clamp_side(width, 1024)
@@ -122,7 +151,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
 
 class Req(BaseModel):
     prompt: str = Field(..., max_length=2000)
-    image: str | None = None       # base64 输入图
+    image: str | None = Field(None, max_length=MAX_IMAGE_B64)  # base64 输入图
     width: int | None = Field(None, ge=16, le=4096)
     height: int | None = Field(None, ge=16, le=4096)
     steps: int = Field(4, ge=1, le=64)
