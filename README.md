@@ -8,6 +8,8 @@ Gesture viewfinder + real-time AI restyle. One CUDA GPU runs a [FLUX.2 [klein] 4
 
 ## Preview
 
+[![blinkface demo — hands frame the face, anime restyle inside](./docs/preview-anime.jpg)](https://x.com/Lumosous/status/2080430080371941882)
+
 Frame your face with both hands → the region restyles live (anime, Ghibli, cyberpunk, …). Close the frame to jump to the next style.
 
 ▶️ **[Demo video (X / Twitter)](https://x.com/Lumosous/status/2080430080371941882)**
@@ -154,6 +156,7 @@ open http://127.0.0.1:8080
 | `envfile.py` | `.env` loader |
 | `.env.example` | config template |
 | `SECURITY.md` | security notes |
+| `docs/` | README preview images |
 | `README-zh.md` | Chinese docs |
 
 ---

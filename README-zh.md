@@ -9,6 +9,8 @@
 
 ## 效果预览
 
+[![blinkface 演示：双手围框，框内动漫风格化](./docs/preview-anime.jpg)](https://x.com/Lumosous/status/2080430080371941882)
+
 双手比出取景框 → 框内实时变成动漫 / 吉卜力 / 赛博朋克等风格；收起双手切换下一个风格。
 
 ▶️ **[视频演示（X / Twitter）](https://x.com/Lumosous/status/2080430080371941882)**
@@ -155,6 +157,7 @@ open http://127.0.0.1:8080
 | `envfile.py` | 读 `.env` |
 | `.env.example` | 配置模板 |
 | `SECURITY.md` | 安全说明 |
+| `docs/` | README 预览图 |
 | `README.md` | English docs |
 
 ---
