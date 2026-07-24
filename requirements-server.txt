@@ -1,0 +1,17 @@
+# GPU 端 (server.py / dl.py)
+# 需要 Python >= 3.10，CUDA GPU，建议 >= 16GB 显存（klein 4B bf16 ≈ 13GB）
+#
+# 1) 先装匹配本机 CUDA 的 torch，例如 CUDA 12.4:
+#    pip install torch --index-url https://download.pytorch.org/whl/cu124
+# 2) 再装本文件:
+#    pip install -r requirements-server.txt
+# 3) FLUX.2-klein 若 pip 版 diffusers 尚未包含，再装 git 主线:
+#    pip install git+https://github.com/huggingface/diffusers.git
+diffusers>=0.33.0
+transformers>=4.46.0
+accelerate>=1.0.0
+fastapi>=0.115.0
+uvicorn>=0.32.0
+pillow>=10.0.0
+huggingface_hub>=0.26.0
+pydantic>=2.0.0

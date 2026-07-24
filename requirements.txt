@@ -1,0 +1,2 @@
+# 客户端（gen.py / web-serve.py）：仅 Python 标准库 + 本仓库 envfile.py
+# 无需 pip 安装。Python >= 3.10。
